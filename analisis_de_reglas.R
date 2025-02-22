@@ -61,6 +61,7 @@ df_categorizado |>  select(all_of(vars_no_indep),grupo)
 
 #Se crean las transacciones
 transacciones <- as(df_categorizado[, c(vars_no_indep, "grupo")], "transactions")
+#transacciones <- as(df_categorizado, "transactions")
 
 #Se observan las frecuencias de los Items
 itemFrequencyPlot(transacciones, topN=30, col="pink")
@@ -148,15 +149,16 @@ reglas_1_b |>
   sort(by ="confidence") |> 
   inspect()
 
-
+# Lift Igual a 1 indica que hay independencia entre las variables, lif > 1 signifca que las variables estan correlacionadas positivamente, lift < 1 correlacionadas negativamente
 reglas_1_b |> 
   sort(by ="confidence") |> 
   inspect() 
 
+# Se agrega el coverage (La probabilidad de que ocuura el antecedente (soporte del antecedente)
+# Se agrega test de fisher (Valor p de asociacion,si es mayor a 0.1 entonces no hay asociacion estadística entre lhs y rhs)
+metricas <- interestMeasure(reglas_1_b,measure = c("coverage","fishersExactTest"),transactions = transacciones)
+quality(reglas_1_b) <- cbind(quality(reglas_1_b), metricas)
 
-
-as(reglas_b, "data.frame") |> 
-  as_tibble()
 #####################################
 
 plot(reglas_b, measure=c("support", "confidence"), shading="lift",col="#FF66CC")
