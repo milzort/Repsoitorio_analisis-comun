@@ -3,11 +3,10 @@ library(arules)
 library(fim4r)
 library(arulesViz)
 
+# Funciones --------------------------------------------------------------------------------
 
 quantil_min <- function(x,n_cuantiles){
-  
   largo <- 0
-  
   while (largo != n_cuantiles+2) {
     
     breaks_cuant <- quantile(x, probs = seq(0, 1, length.out = n_cuantiles + 1), na.rm = TRUE, include.lowest = T)
@@ -19,9 +18,7 @@ quantil_min <- function(x,n_cuantiles){
     if(largo != n_cuantiles+2){
       n_cuantiles <- n_cuantiles-1
     }
-    
   }
-  
   return(cut(x, breaks = c(-Inf,breaks_cuant), labels = NULL))
 }
 
@@ -56,6 +53,7 @@ realizar_pruebas <- function(df, vars_categoricas, var_comparacion) {
   return(resultados)
 }
 
+# Generacion variables  --------------------------------------------------------------------------------
 set.seed(123)
 df <- data.frame(
   var1 = rnorm(100),
@@ -68,6 +66,8 @@ df <- data.frame(
 vars_continuas <- c("var1", "var2", "var3")
 
 df_categorizado <- categorizar_por_cuantiles(df, vars_continuas,n_cuantiles = 10)
+
+summary(df_categorizado[,paste0("cat_",vars_continuas)])
 
 vars_categoricas <- grep("^cat_", names(df_categorizado), value = TRUE)
 
@@ -82,9 +82,7 @@ vars_no_indep<- gsub("cat_","",resultados |>  filter(P_Valor_Chi2 > 0.05) |> pul
 
 
 
-
-
-################################################################
+# Creacion transacciones --------------------------------------------------------------
 df_categorizado |>  select(all_of(vars_no_indep),grupo)
 
 #Se crean las transacciones
@@ -139,7 +137,7 @@ itemFrequency(x = transacciones, type = "absolute") |>
 #                                    target = "rules"))
 
 
-
+# Creacion de reglas ---------------------------------------------------------------
 reglas <- fim4r(transacciones, 
                 method = "fpgrowth", 
                 target = "rules", 
@@ -188,6 +186,9 @@ metricas <- interestMeasure(reglas_1_b,measure = c("coverage","fishersExactTest"
 quality(reglas_1_b) <- cbind(quality(reglas_1_b), metricas)
 
 #####################################
+
+
+# Analisis de reglas------------------------------------------------------------
 
 plot(reglas_b, measure=c("support", "confidence"), shading="lift",col="#FF66CC")
 
