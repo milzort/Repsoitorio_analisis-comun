@@ -31,7 +31,8 @@ quantil_min <- function(x,n_cuantiles){
 
 categorizar_por_cuantiles <- function(df, vars_continuas, n_cuantiles = 4) {
   df_categorizado <- df %>%
-    mutate(across(all_of(vars_continuas), ~ quantil_min(.x,n_cuantiles), .names = "cat_{col}"))
+    mutate(across(all_of(vars_continuas), ~ quantil_min(.x,n_cuantiles), .names = "cat_{col}")) |> 
+    mutate(across(contains("cat_"), ~ as.character(.x)))
   return(df_categorizado)
 }
 
@@ -53,12 +54,58 @@ realizar_pruebas <- function(df, vars_categoricas, var_comparacion) {
   return(resultados)
 }
 
+
+
+resumen_categorias <- function(df) {
+  # # Verificar que el data frame solo contenga variables categóricas
+  # if (!all(sapply(df, is.factor))) {
+  #   stop("El data frame debe contener solo variables categóricas (factores).")
+  # }
+  
+  # Inicializar una lista para almacenar los resultados
+  resultados <- list()
+  
+  # Iterar sobre cada columna del data frame
+  for (col in names(df)) {
+    # Obtener la tabla de frecuencias
+    frecuencias <- table(df[[col]])
+    frecuencias_relativas <- prop.table(frecuencias)
+    
+    # Encontrar la categoría con menor frecuencia
+    min_frec <- min(frecuencias)
+    min_cat <- names(frecuencias)[which.min(frecuencias)]
+    min_frec_rel <- frecuencias_relativas[min_cat]
+    
+    # Encontrar la categoría con mayor frecuencia
+    max_frec <- max(frecuencias)
+    max_cat <- names(frecuencias)[which.max(frecuencias)]
+    max_frec_rel <- frecuencias_relativas[max_cat]
+    
+    # Almacenar los resultados en la lista
+    resultados[[col]] <- data.frame(
+      Variable = col,
+      Categoria_Min = min_cat,
+      Frecuencia_Min = min_frec,
+      Frecuencia_Rel_Min = min_frec_rel,
+      Categoria_Max = max_cat,
+      Frecuencia_Max = max_frec,
+      Frecuencia_Rel_Max = max_frec_rel
+    )
+  }
+  
+  # Combinar todos los resultados en un solo data frame
+  resultado_final <- do.call(rbind, resultados)
+  
+  return(resultado_final)
+}
+
 # Generacion variables  --------------------------------------------------------------------------------
 set.seed(123)
 df <- data.frame(
   var1 = rnorm(100),
   var2 = rnorm(100),
   var3 = rnorm(100),
+  var4 = sample(c("P1", "P2","P3","P4"), 100, replace = TRUE),
   grupo = sample(c("A", "B"), 100, replace = TRUE)
 )
 
@@ -67,7 +114,21 @@ vars_continuas <- c("var1", "var2", "var3")
 
 df_categorizado <- categorizar_por_cuantiles(df, vars_continuas,n_cuantiles = 10)
 
-summary(df_categorizado[,paste0("cat_",vars_continuas)])
+summary(df_categorizado |> select(all_of(c(paste0("cat_",vars_continuas),"var4"))))
+
+
+vars_categor_ori <- df |> 
+  names() |> 
+  as_tibble() |> 
+  filter(!value %in% vars_continuas) |> 
+  pull()
+
+
+df_categorizado |> 
+  select(all_of(c(paste0("cat_",vars_continuas),vars_categor_ori))) |> 
+  as_tibble() |> 
+  resumen_categorias()
+
 
 vars_categoricas <- grep("^cat_", names(df_categorizado), value = TRUE)
 
