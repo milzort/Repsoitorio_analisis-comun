@@ -3,12 +3,40 @@ library(arules)
 library(fim4r)
 library(arulesViz)
 
-categorizar_por_cuantiles <- function(df, vars_continuas, n_cuantiles = 4) {
-  df_categorizado <- df %>%
-    mutate(across(all_of(vars_continuas), ~ cut(.x, breaks = quantile(.x, probs = seq(0, 1, length.out = n_cuantiles + 1), na.rm = TRUE, include.lowest = TRUE), labels = NULL), .names = "cat_{col}"))
-  return(df_categorizado)
+
+quantil_min <- function(x,n_cuantiles){
+  
+  largo <- 0
+  
+  while (largo != n_cuantiles+2) {
+    
+    breaks_cuant <- quantile(x, probs = seq(0, 1, length.out = n_cuantiles + 1), na.rm = TRUE, include.lowest = T)
+    
+    largo <- breaks_cuant |> 
+      unique() |> 
+      length()  
+    
+    if(largo != n_cuantiles+2){
+      n_cuantiles <- n_cuantiles-1
+    }
+    
+  }
+  
+  return(cut(x, breaks = c(-Inf,breaks_cuant), labels = NULL))
 }
 
+# categorizar_por_cuantiles <- function(df, vars_continuas, n_cuantiles = 4) {
+#   df_categorizado <- df %>%
+#     mutate(across(all_of(vars_continuas), ~ cut(.x, breaks = quantile(.x, probs = seq(0, 1, length.out = n_cuantiles + 1), na.rm = TRUE, include.lowest = TRUE), labels = NULL), .names = "cat_{col}"))
+#   return(df_categorizado)
+# }
+
+
+categorizar_por_cuantiles <- function(df, vars_continuas, n_cuantiles = 4) {
+  df_categorizado <- df %>%
+    mutate(across(all_of(vars_continuas), ~ quantil_min(.x,n_cuantiles), .names = "cat_{col}"))
+  return(df_categorizado)
+}
 
 realizar_pruebas <- function(df, vars_categoricas, var_comparacion) {
   resultados <- data.frame(Variable = character(), P_Valor_Chi2 = numeric(), P_Valor_Fisher = numeric(), stringsAsFactors = FALSE)
